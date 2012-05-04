@@ -1717,7 +1717,10 @@ int main(int argc, char *argv[])
 	int socket_errno;
 	u_char *packet;
 	char *target, hnamebuf[MAXHOSTNAMELEN];
+	union {
 	char rspace[3 + 4 * NROUTES + 1];	/* record route space */
+	uint32_t rspace32[(3 + 4 * NROUTES + 1)/4];
+	} rsp;
 
 	icmp_sock = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
 	socket_errno = errno;
@@ -1994,32 +1997,32 @@ int main(int argc, char *argv[])
 
 	/* record route option */
 	if (options & F_RROUTE) {
-	        bzero(rspace, sizeof(rspace));
-		rspace[0] = IPOPT_NOP;
-		rspace[1+IPOPT_OPTVAL] = IPOPT_RR;
-		rspace[1+IPOPT_OLEN] = sizeof(rspace)-1;
-		rspace[1+IPOPT_OFFSET] = IPOPT_MINOFF;
+	        bzero(rsp.rspace, sizeof(rsp.rspace));
+		rsp.rspace[0] = IPOPT_NOP;
+		rsp.rspace[1+IPOPT_OPTVAL] = IPOPT_RR;
+		rsp.rspace[1+IPOPT_OLEN] = sizeof(rsp.rspace)-1;
+		rsp.rspace[1+IPOPT_OFFSET] = IPOPT_MINOFF;
 		optlen = 40;
-		if (setsockopt(icmp_sock, IPPROTO_IP, IP_OPTIONS, rspace, sizeof(rspace)) < 0) {
+		if (setsockopt(icmp_sock, IPPROTO_IP, IP_OPTIONS, rsp.rspace, sizeof(rsp.rspace)) < 0) {
 			perror("ping: record route");
 			exit(2);
 		}
 	}
 	if (options & F_TIMESTAMP) {
-	        bzero(rspace, sizeof(rspace));
-		rspace[0] = IPOPT_TIMESTAMP;
-		rspace[1] = (ts_type==IPOPT_TS_TSONLY ? 40 : 36);
-		rspace[2] = 5;
-		rspace[3] = ts_type;
+	        bzero(rsp.rspace, sizeof(rsp.rspace));
+		rsp.rspace[0] = IPOPT_TIMESTAMP;
+		rsp.rspace[1] = (ts_type==IPOPT_TS_TSONLY ? 40 : 36);
+		rsp.rspace[2] = 5;
+		rsp.rspace[3] = ts_type;
 		if (ts_type == IPOPT_TS_PRESPEC) {
 			int i;
-			rspace[1] = 4+nroute*8;
+			rsp.rspace[1] = 4+nroute*8;
 			for (i=0; i<nroute; i++)
-				*(__u32*)&rspace[4+i*8] = route[i];
+				rsp.rspace32[(4+i*8)/4] = route[i];
 		}
-		if (setsockopt(icmp_sock, IPPROTO_IP, IP_OPTIONS, rspace, rspace[1]) < 0) {
-			rspace[3] = 2;
-			if (setsockopt(icmp_sock, IPPROTO_IP, IP_OPTIONS, rspace, rspace[1]) < 0) {
+		if (setsockopt(icmp_sock, IPPROTO_IP, IP_OPTIONS, rsp.rspace, rsp.rspace[1]) < 0) {
+			rsp.rspace[3] = 2;
+			if (setsockopt(icmp_sock, IPPROTO_IP, IP_OPTIONS, rsp.rspace, rsp.rspace[1]) < 0) {
 				perror("ping: ts option");
 				exit(2);
 			}
@@ -2028,16 +2031,16 @@ int main(int argc, char *argv[])
 	}
 	if (options & F_SOURCEROUTE) {
 	        int i;
-	        bzero(rspace, sizeof(rspace));
-		rspace[0] = IPOPT_NOOP;
-		rspace[1+IPOPT_OPTVAL] = (options & F_SO_DONTROUTE) ? IPOPT_SSRR
+	        bzero(rsp.rspace, sizeof(rsp.rspace));
+		rsp.rspace[0] = IPOPT_NOOP;
+		rsp.rspace[1+IPOPT_OPTVAL] = (options & F_SO_DONTROUTE) ? IPOPT_SSRR
 			: IPOPT_LSRR;
-		rspace[1+IPOPT_OLEN] = 3 + nroute*4;
-		rspace[1+IPOPT_OFFSET] = IPOPT_MINOFF;
+		rsp.rspace[1+IPOPT_OLEN] = 3 + nroute*4;
+		rsp.rspace[1+IPOPT_OFFSET] = IPOPT_MINOFF;
 		for (i=0; i<nroute; i++)
-			*(__u32*)&rspace[4+i*4] = route[i];
-		
-		if (setsockopt(icmp_sock, IPPROTO_IP, IP_OPTIONS, rspace, 4 + nroute*4) < 0) {
+			rsp.rspace32[(4+i*4)/4] = route[i];
+
+		if (setsockopt(icmp_sock, IPPROTO_IP, IP_OPTIONS, rsp.rspace, 4 + nroute*4) < 0) {
 			perror("ping: record route");
 			exit(2);
 		}
