@@ -1,0 +1,9 @@
+Change-Id: I2bf741cb66380e7cfcd4cc1b78d04a2681ee961b
+Code-Review+2: Ricardo Cerqueira <cyanogenmod@cerqueira.org>
+Verified+1: Ricardo Cerqueira <cyanogenmod@cerqueira.org>
+Code-Review+1: Bernhard Rosenkraenzer <Bernhard.Rosenkranzer@linaro.org>
+Submitted-by: Ricardo Cerqueira <cyanogenmod@cerqueira.org>
+Submitted-at: Mon, 11 Jun 2012 05:07:58 +0400
+Reviewed-on: http://review.cyanogenmod.com/17371
+Project: CyanogenMod/android_external_ping
+Branch: refs/heads/ics
